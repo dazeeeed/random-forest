@@ -103,12 +103,29 @@ class DecisionTreeClassifier:
 
 
 class RandomForestClassifier:
-    def __init__(self, n_estimators=100, max_depth=None):
+    def __init__(self, n_estimators=100, max_depth=100, min_sample_split=2):
         self.n_estimators = n_estimators
         self.max_depth = max_depth
+        self.min_sample_split = min_sample_split
+        self._trees = [DecisionTreeClassifier(self.max_depth, min_samples_split=self.min_sample_split)
+                       for _ in range(self.n_estimators)]
 
-    def fit(self, x, y):
-        pass
+    def _draw_bootstrap(self, X, y):
+        """Draw random indices and return bootstrap data based on them."""
+        bootstrap_idx = np.random.choice(np.arange(X.shape[0]), X.shape[0], replace=True)
+        X_bootstrap, y_bootstrap = X[bootstrap_idx], y[bootstrap_idx]
+        return X_bootstrap, y_bootstrap
 
-    def predict(self, x):
-        pass
+    def fit(self, X, y):
+        for i, tree in enumerate(self._trees):
+            print("Training tree number {}".format(i+1))
+            X_bootstrap, y_bootstrap = self._draw_bootstrap(X, y)
+            tree.fit(X_bootstrap, y_bootstrap)
+
+    def predict(self, X):
+        predictions_trees = np.empty(shape=(self.n_estimators, X.shape[0]), dtype=int)
+        for i, tree in enumerate(self._trees):
+            predictions_trees[i, :] = np.array(tree.predict(X))
+
+        predictions_forest = [np.bincount(predictions_trees[:, i]).argmax() for i in range(X.shape[0])]
+        return predictions_forest
