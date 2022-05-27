@@ -1,5 +1,5 @@
 import numpy as np
-
+from IPython.display import clear_output
 
 class Node:
     """Helper class with information about feature, threshold value and children"""
@@ -118,7 +118,8 @@ class RandomForestClassifier:
 
     def fit(self, X, y):
         for i, tree in enumerate(self._trees):
-            print("Training tree number {}".format(i+1))
+            if i+1 % 5 == 0:
+                print("Training tree number {}".format(i+1))
             X_bootstrap, y_bootstrap = self._draw_bootstrap(X, y)
             tree.fit(X_bootstrap, y_bootstrap)
 
