@@ -31,6 +31,7 @@ class DecisionTreeClassifier:
         self.root = None
 
     def _criterion(self, y):
+        """Calculate the quality of a split, based on selected function in parameter 'criterion'"""
         if self.criterion == 'entropy':
             return self._entropy(y)
         elif self.criterion == 'gini':
