@@ -16,9 +16,17 @@ class Node:
 
 
 class DecisionTreeClassifier:
-    def __init__(self, max_depth=100, min_samples_split=2, criterion: str = 'entropy'):
+    def __init__(self, max_depth: int = 100, min_samples_split: int = 2, min_samples_leaf: int = 1,
+                 criterion: str = 'entropy'):
+        """
+        :param max_depth: The maximum depth of the tree. Default 100.
+        :param min_samples_split: The minimum number of samples required to split an internal node. Default 2.
+        :param min_samples_leaf: The minimum number of samples required to be at a leaf node. Default 1.
+        :param criterion: {“gini”, “entropy”}. The function to measure the quality of a split. Default 'entropy'.
+        """
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
         self.criterion = criterion
         self.root = None
 
@@ -75,7 +83,8 @@ class DecisionTreeClassifier:
 
     def _is_finished(self, depth):
         """Evaluate criteria if building process is finished"""
-        if depth >= self.max_depth or self.n_class_labels == 1 or self.n_samples < self.min_samples_split:
+        if depth >= self.max_depth or self.n_class_labels == 1 \
+                or self.n_samples < self.min_samples_split or self.n_samples < self.min_samples_leaf:
             return True
         return False
 
@@ -116,12 +125,13 @@ class DecisionTreeClassifier:
 
 
 class RandomForestClassifier:
-    def __init__(self, n_estimators: int = 100, max_depth: int = 100, min_sample_split: int = 2,
-                 criterion: str = 'entropy'):
+    def __init__(self, n_estimators: int = 100, max_depth: int = 100, min_samples_split: int = 2,
+                 min_samples_leaf: int = 1, criterion: str = 'entropy'):
         """
         :param n_estimators: The number of trees in the forest. Default 100.
         :param max_depth: The maximum depth of the tree. Default 100.
-        :param min_sample_split: The minimum number of samples required to split an internal node. Default 2.
+        :param min_samples_split: The minimum number of samples required to split an internal node. Default 2.
+        :param min_samples_leaf: The minimum number of samples required to be at a leaf node. Default 1.
         :param criterion: {“gini”, “entropy”}. The function to measure the quality of a split. Default 'entropy'.
         """
 
@@ -130,10 +140,11 @@ class RandomForestClassifier:
 
         self.n_estimators = n_estimators
         self.max_depth = max_depth
-        self.min_sample_split = min_sample_split
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
         self.criterion = criterion
         self._trees = [DecisionTreeClassifier(
-            self.max_depth, min_samples_split=self.min_sample_split, criterion=self.criterion)
+            self.max_depth, min_samples_split=self.min_samples_split, criterion=self.criterion)
             for _ in range(self.n_estimators)]
 
     def _draw_bootstrap(self, X, y):
