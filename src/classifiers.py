@@ -1,6 +1,7 @@
 import numpy as np
 from IPython.display import clear_output
 
+
 class Node:
     """Helper class with information about feature, threshold value and children"""
     def __init__(self, feature=None, threshold=None, left=None, right=None, *, value=None):
@@ -15,15 +16,27 @@ class Node:
 
 
 class DecisionTreeClassifier:
-    def __init__(self, max_depth=100, min_samples_split=2):
+    def __init__(self, max_depth=100, min_samples_split=2, criterion: str = 'entropy'):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
+        self.criterion = criterion
         self.root = None
+
+    def _criterion(self, y):
+        if self.criterion == 'entropy':
+            return self._entropy(y)
+        elif self.criterion == 'gini':
+            return self._gini(y)
 
     def _entropy(self, y):
         """Calculate entropy"""
         proportions = np.bincount(y) / len(y)
         return -np.sum([p * np.log2(p) if 0 < p < 1 else 0 for p in proportions])
+
+    def _gini(self, y):
+        """Calculate gini index"""
+        proportions = np.bincount(y) / len(y)
+        return 1 - np.sum([p**2 for p in proportions])
 
     def _create_split(self, X, threshold):
         """Find the indices in X that meet threshold criteria and collapse in one dimension"""
@@ -32,14 +45,14 @@ class DecisionTreeClassifier:
         return left_idx, right_idx
 
     def _information_gain(self, X, y, threshold):
-        parent_loss = self._entropy(y)
+        parent_loss = self._criterion(y)
         left_idx, right_idx = self._create_split(X, threshold)
         n, n_left, n_right = len(y), len(left_idx), len(right_idx)
 
         if n_left == 0 or n_right == 0:
             return 0
 
-        child_loss = (n_left / n ) * self._entropy(y[left_idx]) + (n_right / n) * self._entropy(y[right_idx])
+        child_loss = (n_left / n) * self._criterion(y[left_idx]) + (n_right / n) * self._criterion(y[right_idx])
         return parent_loss - child_loss
 
     def _best_split(self, X, y, features):
@@ -103,12 +116,25 @@ class DecisionTreeClassifier:
 
 
 class RandomForestClassifier:
-    def __init__(self, n_estimators=100, max_depth=100, min_sample_split=2):
+    def __init__(self, n_estimators: int = 100, max_depth: int = 100, min_sample_split: int = 2,
+                 criterion: str = 'entropy'):
+        """
+        :param n_estimators: The number of trees in the forest. Default 100.
+        :param max_depth: The maximum depth of the tree. Default 100.
+        :param min_sample_split: The minimum number of samples required to split an internal node. Default 2.
+        :param criterion: {“gini”, “entropy”}. The function to measure the quality of a split. Default 'entropy'.
+        """
+
+        assert criterion == 'entropy' or criterion == 'gini', \
+            f"An invalid value for parameter 'criterion' was given: {criterion}. Available are: {{“gini”, “entropy”}}"
+
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.min_sample_split = min_sample_split
-        self._trees = [DecisionTreeClassifier(self.max_depth, min_samples_split=self.min_sample_split)
-                       for _ in range(self.n_estimators)]
+        self.criterion = criterion
+        self._trees = [DecisionTreeClassifier(
+            self.max_depth, min_samples_split=self.min_sample_split, criterion=self.criterion)
+            for _ in range(self.n_estimators)]
 
     def _draw_bootstrap(self, X, y):
         """Draw random indices and return bootstrap data based on them."""
@@ -118,8 +144,8 @@ class RandomForestClassifier:
 
     def fit(self, X, y):
         for i, tree in enumerate(self._trees):
-            if i+1 % 5 == 0:
-                print("Training tree number {}".format(i+1))
+            if (i + 1) % 5 == 0:
+                print(f"Training tree number {i + 1}")
             X_bootstrap, y_bootstrap = self._draw_bootstrap(X, y)
             tree.fit(X_bootstrap, y_bootstrap)
 

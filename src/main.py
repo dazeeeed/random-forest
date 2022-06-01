@@ -20,8 +20,7 @@ def main():
         X, y, test_size=0.2, random_state=1
     )
 
-    # clf = DecisionTreeClassifier(max_depth=10)
-    clf = RandomForestClassifier(n_estimators=2, max_depth=10, min_sample_split=2)
+    clf = RandomForestClassifier(n_estimators=1, max_depth=1, min_sample_split=5, criterion='gini')
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print(y_pred)
