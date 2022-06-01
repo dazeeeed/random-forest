@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import choice
 from IPython.display import clear_output
 
 
@@ -17,17 +18,24 @@ class Node:
 
 class DecisionTreeClassifier:
     def __init__(self, max_depth: int = 100, min_samples_split: int = 2, min_samples_leaf: int = 1,
-                 criterion: str = 'entropy'):
+                 criterion: str = 'entropy', threshold: float = 0.4, split_method: str = 'roulette'):
         """
         :param max_depth: The maximum depth of the tree. Default 100.
         :param min_samples_split: The minimum number of samples required to split an internal node. Default 2.
         :param min_samples_leaf: The minimum number of samples required to be at a leaf node. Default 1.
         :param criterion: {“gini”, “entropy”}. The function to measure the quality of a split. Default 'entropy'.
+        :param threshold: Threshold used to reject possible splits at a leaf node. Default 0.4.
+        :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
+            Classic will split at the place with the biggest score, roulette will choose place with roulette method
+            considering all possible splits with score bigger than threshold.
         """
+
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.criterion = criterion
+        self.threshold = threshold
+        self.method = split_method
         self.root = None
 
     def _criterion(self, y):
@@ -45,7 +53,7 @@ class DecisionTreeClassifier:
     def _gini(self, y):
         """Calculate gini index"""
         proportions = np.bincount(y) / len(y)
-        return 1 - np.sum([p**2 for p in proportions])
+        return 2 * (1 - np.sum([p**2 for p in proportions]))
 
     def _create_split(self, X, threshold):
         """Find the indices in X that meet threshold criteria and collapse in one dimension"""
@@ -65,8 +73,13 @@ class DecisionTreeClassifier:
         return parent_loss - child_loss
 
     def _best_split(self, X, y, features):
-        """Create best split at current node"""
-        # TODO: Implement selekcja progowa w połaczeniu z ruletka here
+        if self.method == 'classic':
+            return self._best_split_classic(X, y, features)
+        elif self.method == 'roulette':
+            return self._best_split_roulette(X, y, features)
+
+    def _best_split_classic(self, X, y, features):
+        """Create best split at current node with classic selection"""
         split = {"score": -1, "feature": None, "threshold": None}
 
         for feature in features:
@@ -81,6 +94,44 @@ class DecisionTreeClassifier:
                     split["threshold"] = thr
 
         return split["feature"], split["threshold"]
+
+    def _best_split_roulette(self, X, y, features):
+        """Create best split at current node with roulette selection"""
+        population = list()
+
+        # return when max_score < threshold
+        best_split = {"score": -1, "feature": None, "threshold": None}
+
+        for feature in features:
+            X_i = X[:, feature]
+            thresholds = np.unique(X_i)
+            for thr in thresholds:
+                score = self._information_gain(X_i, y, thr)
+
+                population.append({'score': score, 'feature': feature, 'threshold': thr})
+
+                if score > best_split["score"]:
+                    best_split["score"] = score
+                    best_split["feature"] = feature
+                    best_split["threshold"] = thr
+
+        max_score = max(population, key=lambda d: d['score'])['score']
+
+        if max_score <= self.threshold:
+            return best_split['feature'], best_split['threshold']
+
+        # reject scores below the threshold
+        population = list(filter(lambda d: d['score'] > self.threshold, population))
+        population = sorted(population, key=lambda d: d['score'], reverse=True)
+
+        # TODO druga część wybierania progowego, nie rozumem go
+        # jakiś kod
+
+        # roulette
+        prob_sum = np.sum([d['score'] for d in population])
+        split = choice(population, p=[d['score'] / prob_sum for d in population])
+
+        return split['feature'], split['threshold']
 
     def _is_finished(self, depth):
         """Evaluate criteria if building process is finished"""
@@ -127,25 +178,35 @@ class DecisionTreeClassifier:
 
 class RandomForestClassifier:
     def __init__(self, n_estimators: int = 100, max_depth: int = 100, min_samples_split: int = 2,
-                 min_samples_leaf: int = 1, criterion: str = 'entropy'):
+                 min_samples_leaf: int = 1, criterion: str = 'entropy', threshold: float = 0.4,
+                 split_method: str = 'roulette'):
         """
         :param n_estimators: The number of trees in the forest. Default 100.
         :param max_depth: The maximum depth of the tree. Default 100.
         :param min_samples_split: The minimum number of samples required to split an internal node. Default 2.
         :param min_samples_leaf: The minimum number of samples required to be at a leaf node. Default 1.
         :param criterion: {“gini”, “entropy”}. The function to measure the quality of a split. Default 'entropy'.
+        :param threshold: Threshold used to reject possible splits at a leaf node. Default 0.4.
+        :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
+            Classic will split at the place with the biggest score, roulette will choose place with roulette method
+            considering all possible splits with score bigger than threshold.
         """
 
         assert criterion == 'entropy' or criterion == 'gini', \
-            f"An invalid value for parameter 'criterion' was given: {criterion}. Available are: {{“gini”, “entropy”}}"
+            f"An invalid value for parameter 'criterion' was given: {criterion}. Available are: {{“gini”, “entropy”}}."
+        assert split_method == 'classic' or split_method == 'roulette', f"Type correct method"
+
+        assert 0.0 < threshold < 1.0, f"Parameter 'threshold' must be between 0.0 and 1.0."
 
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.criterion = criterion
+        self.threshold = threshold
+        self.method = split_method
         self._trees = [DecisionTreeClassifier(
-            self.max_depth, min_samples_split=self.min_samples_split, criterion=self.criterion)
+            self.max_depth, min_samples_split=self.min_samples_split, criterion=self.criterion, threshold=self.threshold)
             for _ in range(self.n_estimators)]
 
     def _draw_bootstrap(self, X, y):

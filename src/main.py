@@ -20,7 +20,8 @@ def main():
         X, y, test_size=0.2, random_state=1
     )
 
-    clf = RandomForestClassifier(n_estimators=1, max_depth=1, min_samples_split=5, min_samples_leaf=1, criterion='gini')
+    clf = RandomForestClassifier(n_estimators=3, max_depth=4, min_samples_split=2, min_samples_leaf=1,
+                                 criterion='gini', threshold=0.4, split_method='classic')
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print(y_pred)
