@@ -7,10 +7,12 @@ from os.path import join
 
 
 class Metrics:
-    def __init__(self, y_true, y_pred, classes):
+    def __init__(self, y_true, y_pred, train_time, classes, training_params):
         self._y_true = y_true
         self._y_pred = y_pred
+        self._train_time = train_time
         self._classes = classes
+        self._training_params = training_params
 
         self._matrix = self._create_matrix()
 
@@ -35,6 +37,11 @@ class Metrics:
     def confusion_matrix(self):
         return self._matrix
 
+    def calc_results(self):
+        p = self._training_params
+        return [p['n_estimators'], p['max_depth'], p['min_samples_split'], p['min_samples_leaf'], p['criterion'],
+                p['threshold'], p['split_method'], self.accuracy(), self.f1(), self._train_time]
+
     def save_metrics(self, path_to_folder='./', n_estimator=0, max_depth=0, criterion=0, split_method=0):
         plt.figure(figsize=(7, 6))
         sns.heatmap(self._matrix, annot=True)
@@ -47,7 +54,7 @@ class Metrics:
         plt.savefig(join(path_to_folder, filename))
         plt.clf()
 
-        # TODO AUC się nie liczy
-        # save metrics to .csv file
-        with open(join(path_to_folder, 'results.csv'), 'a') as f:
-            f.write(f"{n_estimator},{max_depth},{criterion},{split_method},{self.accuracy()},{self.f1()},{0}\n")
+        # # TODO AUC się nie liczy
+        # # save metrics to .csv file
+        # with open(join(path_to_folder, 'results.csv'), 'a') as f:
+        #     f.write(f"{n_estimator},{max_depth},{criterion},{split_method},{self.accuracy()},{self.f1()}\n")
