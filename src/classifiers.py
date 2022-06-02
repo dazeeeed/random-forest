@@ -135,10 +135,11 @@ class DecisionTreeClassifier:
 
     def _is_finished(self, depth):
         """Evaluate criteria if building process is finished"""
-        if depth >= self.max_depth or self.n_class_labels == 1 \
-                or self.n_samples < self.min_samples_split or self.n_samples < self.min_samples_leaf:
-            return True
-        return False
+        return depth >= self.max_depth or self.n_class_labels == 1 or self.n_samples < self.min_samples_split
+
+    def _is_leaf_enough(self, X, right_idx, left_idx):
+        """Evaluate criteria for new created leaf"""
+        return X[right_idx, :].shape[0] >= self.min_samples_leaf and X[left_idx, :].shape[0] >= self.min_samples_leaf
 
     def _build_tree(self, X, y, depth=0):
         self.n_samples, self.n_features = X.shape
@@ -155,6 +156,11 @@ class DecisionTreeClassifier:
 
         # Recursive growing of children
         left_idx, right_idx = self._create_split(X[:, best_feature], best_threshold)
+
+        if not self._is_leaf_enough(X, left_idx=left_idx, right_idx=right_idx):
+            most_common_label = np.argmax(np.bincount(y))
+            return Node(value=most_common_label)
+
         left_child = self._build_tree(X[left_idx, :], y[left_idx], depth + 1)
         right_child = self._build_tree(X[right_idx, :], y[right_idx], depth + 1)
         return Node(best_feature, best_threshold, left_child, right_child)
