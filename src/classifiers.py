@@ -1,3 +1,9 @@
+#--------------------------------------------------
+# Created By  : Krzysztof Palmi, Łukasz Sawicki 
+# Created Date: 04.06.2022
+# Class:        Machine Learning, 2022 summer
+#--------------------------------------------------
+
 import numpy as np
 from numpy.random import choice
 from IPython.display import clear_output

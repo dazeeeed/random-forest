@@ -1,3 +1,9 @@
+#--------------------------------------------------
+# Created By  : Krzysztof Palmi, Łukasz Sawicki 
+# Created Date: 04.06.2022
+# Class:        Machine Learning, 2022 summer
+#--------------------------------------------------
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder

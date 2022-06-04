@@ -1,3 +1,9 @@
+#--------------------------------------------------
+# Created By  : Krzysztof Palmi, Łukasz Sawicki 
+# Created Date: 04.06.2022
+# Class:        Machine Learning, 2022 summer
+#--------------------------------------------------
+
 import pandas as pd
 from classifiers import RandomForestClassifier
 from metrics import Metrics
