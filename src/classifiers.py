@@ -86,8 +86,11 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                score = self._information_gain(X_i, y, thr)
+                # check if leaf size is satisfied with this threshold
+                if not self._is_leaf_enough(X, thr):
+                    continue
 
+                score = self._information_gain(X_i, y, thr)
                 if score > split["score"]:
                     split["score"] = score
                     split["feature"] = feature
@@ -106,8 +109,11 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                score = self._information_gain(X_i, y, thr)
+                # check if leaf size is satisfied with this threshold
+                if not self._is_leaf_enough(X, thr):
+                    continue
 
+                score = self._information_gain(X_i, y, thr)
                 population.append({'score': score, 'feature': feature, 'threshold': thr})
 
                 if score > best_split["score"]:
@@ -137,8 +143,9 @@ class DecisionTreeClassifier:
         """Evaluate criteria if building process is finished"""
         return depth >= self.max_depth or self.n_class_labels == 1 or self.n_samples < self.min_samples_split
 
-    def _is_leaf_enough(self, X, right_idx, left_idx):
+    def _is_leaf_enough(self, X, threshold):
         """Evaluate criteria for new created leaf"""
+        left_idx, right_idx = self._create_split(X, threshold)
         return X[right_idx, :].shape[0] >= self.min_samples_leaf and X[left_idx, :].shape[0] >= self.min_samples_leaf
 
     def _build_tree(self, X, y, depth=0):
@@ -156,10 +163,6 @@ class DecisionTreeClassifier:
 
         # Recursive growing of children
         left_idx, right_idx = self._create_split(X[:, best_feature], best_threshold)
-
-        if not self._is_leaf_enough(X, left_idx=left_idx, right_idx=right_idx):
-            most_common_label = np.argmax(np.bincount(y))
-            return Node(value=most_common_label)
 
         left_child = self._build_tree(X[left_idx, :], y[left_idx], depth + 1)
         right_child = self._build_tree(X[right_idx, :], y[right_idx], depth + 1)
