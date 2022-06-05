@@ -24,6 +24,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\results\iris_test.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\results\paris_housing_test.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\results\results.csv">
           <value>
             <Attribute>

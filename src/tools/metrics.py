@@ -57,5 +57,5 @@ class Metrics:
         plt.xlabel('Predicted Values')
 
         # save confusion_matrix
-        plt.savefig(join('../../results/', filename))
+        plt.savefig(join('../results/', filename))
         plt.clf()
