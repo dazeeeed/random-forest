@@ -30,7 +30,7 @@ def main():
     training_results = list()
 
     # store best model (based on accuracy) for given set of parameters
-    best_model = {'model': None, 'acc': 0.0, 'train_params': None, 'metrics': None}
+    best_model = {'model': None, 'acc': -1.0, 'train_params': None, 'metrics': None}
 
     for i, tp in enumerate(training_parameters):
         print(f"Training with set {i + 1} / {len(training_parameters)}: {tp}")
