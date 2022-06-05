@@ -1,8 +1,8 @@
-#--------------------------------------------------
+# --------------------------------------------------
 # Created By  : Krzysztof Palmi, Łukasz Sawicki 
 # Created Date: 04.06.2022
 # Class:        Machine Learning, 2022 summer
-#--------------------------------------------------
+# --------------------------------------------------
 
 import numpy as np
 from numpy.random import choice
@@ -92,9 +92,9 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                # check if leaf size is satisfied with this threshold
-                if not self._is_leaf_enough(X, thr):
-                    continue
+                # # check if leaf size is satisfied with this threshold
+                # if not self._is_leaf_enough(X, thr):
+                #     continue
 
                 score = self._information_gain(X_i, y, thr)
                 if score > split["score"]:
@@ -115,9 +115,9 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                # check if leaf size is satisfied with this threshold
-                if not self._is_leaf_enough(X, thr):
-                    continue
+                # # check if leaf size is satisfied with this threshold
+                # if not self._is_leaf_enough(X, thr):
+                #     continue
 
                 score = self._information_gain(X_i, y, thr)
                 population.append({'score': score, 'feature': feature, 'threshold': thr})

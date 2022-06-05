@@ -1,8 +1,8 @@
-#--------------------------------------------------
+# --------------------------------------------------
 # Created By  : Krzysztof Palmi, Łukasz Sawicki 
 # Created Date: 04.06.2022
 # Class:        Machine Learning, 2022 summer
-#--------------------------------------------------
+# --------------------------------------------------
 
 import numpy as np
 import pandas as pd
@@ -46,21 +46,16 @@ class Metrics:
     def calc_results(self):
         p = self._training_params
         return [p['n_estimators'], p['max_depth'], p['min_samples_split'], p['min_samples_leaf'], p['criterion'],
-                p['threshold'], p['split_method'], self.accuracy(), self.f1(), self._train_time]
+                p['threshold'], p['split_method'], f"{self.accuracy():.2f}", f"{self.f1():.2f}",
+                f"{self._train_time:.2f}"]
 
-    def save_metrics(self, path_to_folder='./', n_estimator=0, max_depth=0, criterion=0, split_method=0):
+    def save_metrics(self, filename):
         plt.figure(figsize=(7, 6))
         sns.heatmap(self._matrix, annot=True)
         plt.title('Confusion Matrix')
-        plt.ylabel('Actal Values')
+        plt.ylabel('Actual Values')
         plt.xlabel('Predicted Values')
 
         # save confusion_matrix
-        filename = f"e{n_estimator}_d{max_depth}_{criterion}_{split_method}" + '.jpg'
-        plt.savefig(join(path_to_folder, filename))
+        plt.savefig(join('../../results/', filename))
         plt.clf()
-
-        # # TODO AUC się nie liczy
-        # # save metrics to .csv file
-        # with open(join(path_to_folder, 'results.csv'), 'a') as f:
-        #     f.write(f"{n_estimator},{max_depth},{criterion},{split_method},{self.accuracy()},{self.f1()}\n")
