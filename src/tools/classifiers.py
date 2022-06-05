@@ -24,7 +24,8 @@ class Node:
 
 class DecisionTreeClassifier:
     def __init__(self, max_depth: int = 100, min_samples_split: int = 2, min_samples_leaf: int = 1,
-                 criterion: str = 'entropy', threshold: float = 0.4, split_method: str = 'roulette'):
+                 criterion: str = 'entropy', threshold: float = 0.4, split_method: str = 'roulette',
+                 selective_pressure: int = 10):
         """
         :param max_depth: The maximum depth of the tree. Default 100.
         :param min_samples_split: The minimum number of samples required to split an internal node. Default 2.
@@ -34,6 +35,7 @@ class DecisionTreeClassifier:
         :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
             Classic will split at the place with the biggest score, roulette will choose place with roulette method
             considering all possible splits with score bigger than threshold.
+        :param selective_pressure: # TODO
         """
 
         self.max_depth = max_depth
@@ -42,6 +44,8 @@ class DecisionTreeClassifier:
         self.criterion = criterion
         self.threshold = threshold
         self.method = split_method
+        self.selective_pressure = selective_pressure
+        self._factor = self.selective_pressure * self.threshold
         self.root = None
 
     def _criterion(self, y):
@@ -132,18 +136,33 @@ class DecisionTreeClassifier:
         if max_score <= self.threshold:
             return best_split['feature'], best_split['threshold']
 
-        # reject scores below the threshold
-        population = list(filter(lambda d: d['score'] > self.threshold, population))
-        population = sorted(population, key=lambda d: d['score'], reverse=True)
-
-        # TODO druga część wybierania progowego, nie rozumem go
-        # jakiś kod
+        population = self._threshold_selection(population=population)
 
         # roulette
         prob_sum = np.sum([d['score'] for d in population])
         split = choice(population, p=[d['score'] / prob_sum for d in population])
 
         return split['feature'], split['threshold']
+
+    def _threshold_selection(self, population):
+        # reject scores below the threshold
+        population = list(filter(lambda d: d['score'] > self.threshold, population))
+
+        # sort by score (best is first)
+        population = sorted(population, key=lambda d: d['score'], reverse=True)
+
+        # assign probability of selection for each split
+        population_with_prob = [(x, self._calc_prob(i)) for i, x in enumerate(population)]
+        population_with_prob = list(filter(lambda x: x[1] > 0.0, population_with_prob))
+        population = [x[0] for x in population_with_prob]
+
+        return population
+
+    def _calc_prob(self, i):
+        if 0 <= i < self._factor:
+            return 1 / self._factor
+        else:
+            return 0
 
     def _is_finished(self, depth):
         """Evaluate criteria if building process is finished"""
@@ -194,7 +213,7 @@ class DecisionTreeClassifier:
 class RandomForestClassifier:
     def __init__(self, n_estimators: int = 100, max_depth: int = 100, min_samples_split: int = 2,
                  min_samples_leaf: int = 1, criterion: str = 'entropy', threshold: float = 0.4,
-                 split_method: str = 'roulette'):
+                 split_method: str = 'roulette', selective_pressure: int = 10):
         """
         :param n_estimators: The number of trees in the forest. Default 100.
         :param max_depth: The maximum depth of the tree. Default 100.
@@ -205,6 +224,7 @@ class RandomForestClassifier:
         :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
             Classic will split at the place with the biggest score, roulette will choose place with roulette method
             considering all possible splits with score bigger than threshold.
+        :param selective_pressure: # TODO
         """
 
         assert criterion == 'entropy' or criterion == 'gini', \
@@ -220,9 +240,12 @@ class RandomForestClassifier:
         self.criterion = criterion
         self.threshold = threshold
         self.method = split_method
-        self._trees = [DecisionTreeClassifier(
-            self.max_depth, min_samples_split=self.min_samples_split, criterion=self.criterion, threshold=self.threshold)
-            for _ in range(self.n_estimators)]
+        self.selective_pressure = selective_pressure
+
+        self._trees = [DecisionTreeClassifier(max_depth=self.max_depth, min_samples_split=self.min_samples_split,
+                                              criterion=self.criterion, threshold=self.threshold,
+                                              selective_pressure=self.selective_pressure)
+                       for _ in range(self.n_estimators)]
 
     def _draw_bootstrap(self, X, y):
         """Draw random indices and return bootstrap data based on them."""

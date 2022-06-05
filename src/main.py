@@ -37,7 +37,7 @@ def main():
         clf = RandomForestClassifier(n_estimators=tp['n_estimators'], max_depth=tp['max_depth'],
                                      min_samples_split=tp['min_samples_split'], min_samples_leaf=tp['min_samples_leaf'],
                                      criterion=tp['criterion'], threshold=tp['threshold'],
-                                     split_method=tp['split_method'])
+                                     split_method=tp['split_method'], selective_pressure=tp['selective_pressure'])
 
         # train model and measure training time
         start_time = time.time()
