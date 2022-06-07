@@ -35,7 +35,8 @@ class DecisionTreeClassifier:
         :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
             Classic will split at the place with the biggest score, roulette will choose place with roulette method
             considering all possible splits with score bigger than threshold.
-        :param selective_pressure: # TODO
+        :param selective_pressure: Selective pressure indicator; Defines how many considered splits at a leaf node
+            will go into the next pool
         """
 
         self.max_depth = max_depth
@@ -45,7 +46,6 @@ class DecisionTreeClassifier:
         self.threshold = threshold
         self.method = split_method
         self.selective_pressure = selective_pressure
-        self._factor = self.selective_pressure * self.threshold
         self.root = None
 
     def _criterion(self, y):
@@ -96,10 +96,6 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                # # check if leaf size is satisfied with this threshold
-                # if not self._is_leaf_enough(X, thr):
-                #     continue
-
                 score = self._information_gain(X_i, y, thr)
                 if score > split["score"]:
                     split["score"] = score
@@ -119,10 +115,6 @@ class DecisionTreeClassifier:
             X_i = X[:, feature]
             thresholds = np.unique(X_i)
             for thr in thresholds:
-                # # check if leaf size is satisfied with this threshold
-                # if not self._is_leaf_enough(X, thr):
-                #     continue
-
                 score = self._information_gain(X_i, y, thr)
                 population.append({'score': score, 'feature': feature, 'threshold': thr})
 
@@ -137,14 +129,31 @@ class DecisionTreeClassifier:
             return best_split['feature'], best_split['threshold']
 
         population = self._threshold_selection(population=population)
-
-        # roulette
-        prob_sum = np.sum([d['score'] for d in population])
-        split = choice(population, p=[d['score'] / prob_sum for d in population])
+        split = self._roulette_selection(population)
 
         return split['feature'], split['threshold']
 
+    def _roulette_selection(self, population):
+        """
+        Randomly choose split with roulette selection from given population
+        :param population: list of dicts: [{"score": -1, "feature": None, "threshold": None}, ...]
+        :return: best split - best element from list
+        """
+        prob_sum = np.sum([d['score'] for d in population])
+        split = choice(population, p=[d['score'] / prob_sum for d in population])
+
+        return split
+
     def _threshold_selection(self, population):
+        """
+        Select splits with threshold selection.
+        Firstly reject all splits with score below parameter 'threshold'. Then sort with best be first. Then assign
+        probability for each split with formula: P = 1 / mr if j <= mr, else P = 0, where m is length of filtered
+        population list and r is 'selective_pressure', j is a split's index in list.
+        After that m elements are choose with assigned P probability and returned
+        :param population: list of dicts: [{"score": -1, "feature": None, "threshold": None}, ...]
+        :return: possible splits
+        """
         # reject scores below the threshold
         population = list(filter(lambda d: d['score'] > self.threshold, population))
 
@@ -152,15 +161,24 @@ class DecisionTreeClassifier:
         population = sorted(population, key=lambda d: d['score'], reverse=True)
 
         # assign probability of selection for each split
-        population_with_prob = [(x, self._calc_prob(i)) for i, x in enumerate(population)]
-        population_with_prob = list(filter(lambda x: x[1] > 0.0, population_with_prob))
-        population = [x[0] for x in population_with_prob]
+        mu = len(population)
+        factor = mu * self.selective_pressure
+
+        # i + 1 because we want to assign index=1 to the best split
+        population = [(x, self._calc_prob(i + 1, factor)) for i, x in enumerate(population)]
+        population = list(filter(lambda x: x[1] > 0.0, population))
+
+        # select mu times splits to return
+        population = choice(a=[x[0] for x in population], size=1, p=[x[1] for x in population])
 
         return population
 
-    def _calc_prob(self, i):
-        if 0 <= i < self._factor:
-            return 1 / self._factor
+    def _calc_prob(self, i, factor):
+        if 0 < i <= factor:
+            return 1 / factor
+        # make sure that at least one split will get positive score from this function
+        elif i == 1:
+            return 1
         else:
             return 0
 
@@ -224,14 +242,15 @@ class RandomForestClassifier:
         :param split_method: {"roulette", "classic"}. Method to select split at the leaf node.
             Classic will split at the place with the biggest score, roulette will choose place with roulette method
             considering all possible splits with score bigger than threshold.
-        :param selective_pressure: # TODO
+        :param selective_pressure: Selective pressure indicator; Defines how many considered splits at a leaf node
+            will go into the next pool
         """
 
         assert criterion == 'entropy' or criterion == 'gini', \
             f"An invalid value for parameter 'criterion' was given: {criterion}. Available are: {{“gini”, “entropy”}}."
         assert split_method == 'classic' or split_method == 'roulette', f"Type correct method"
-
         assert 0.0 < threshold < 1.0, f"Parameter 'threshold' must be between 0.0 and 1.0."
+        assert 0.0 < selective_pressure <= 1.0, f"Parameter 'selective_pressure' must be between 0.0 and 1.0."
 
         self.n_estimators = n_estimators
         self.max_depth = max_depth
